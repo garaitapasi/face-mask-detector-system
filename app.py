@@ -174,16 +174,22 @@ if not os.path.exists("mask_detector.keras"):
 
 
 # ---------------- LOAD MODEL ----------------
-@st.cache_resource
+@st.cache_resource(show_spinner="Loading AI model... Please wait ⏳")
 def load_my_model():
-    if not os.path.exists("mask_detector.keras"):
+    model_path = "mask_detector.keras"
+
+    if not os.path.exists(model_path):
         import gdown
+
+        file_id = "1WQjSlvYS93qRFBAnabkGz6XDNbHYK5zT"
+
         gdown.download(
-            "https://drive.google.com/uc?id=YOUR_FILE_ID",
-            "mask_detector.keras",
-            quiet=False
+            f"https://drive.google.com/uc?id={file_id}",
+            model_path,
+            quiet=True
         )
-    return load_model("mask_detector.keras")
+
+    return load_model(model_path)
 
 model = load_my_model()
 
