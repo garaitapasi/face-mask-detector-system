@@ -176,14 +176,16 @@ if not os.path.exists("mask_detector.keras"):
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_my_model():
-
-    return load_model(
-        "mask_detector.keras"
-    )
-
+    if not os.path.exists("mask_detector.keras"):
+        import gdown
+        gdown.download(
+            "https://drive.google.com/uc?id=YOUR_FILE_ID",
+            "mask_detector.keras",
+            quiet=False
+        )
+    return load_model("mask_detector.keras")
 
 model = load_my_model()
-
 
 # ---------------- FACE DETECTOR ----------------
 face_cascade = cv2.CascadeClassifier(
