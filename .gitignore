@@ -1,0 +1,4 @@
+mask_detector.keras
+*.keras
+.venv/
+.idea/
