@@ -22,106 +22,127 @@ CONFIDENCE = 0.5
 DISPLAY_WIDTH = 420
 
 
-# ---------------- PREMIUM CSS ----------------
+# ---------------- ADAPTIVE CSS ----------------
 st.markdown("""
 <style>
-.stApp{
-    background:#030712;
-    color:white;
+:root {
+    --app-bg: #f8fafc;
+    --panel-bg: #ffffff;
+    --sidebar-bg: #e2e8f0;
+    --border-color: #cbd5e1;
+    --text-main: #0f172a;
+    --text-soft: #334155;
+    --button-bg: #dc2626;
+    --button-hover: #ef4444;
+    --button-active: #b91c1c;
+    --info-bg: #dbeafe;
 }
 
-.main .block-container{
-    padding-top:2rem;
-    max-width:1100px;
+@media (prefers-color-scheme: dark) {
+    :root {
+        --app-bg: #030712;
+        --panel-bg: #111827;
+        --sidebar-bg: #111827;
+        --border-color: #374151;
+        --text-main: #ffffff;
+        --text-soft: #cbd5e1;
+        --button-bg: #dc2626;
+        --button-hover: #ef4444;
+        --button-active: #b91c1c;
+        --info-bg: #1e3a8a;
+    }
 }
 
-section[data-testid="stSidebar"]{
-    background:#111827;
-    border-right:1px solid #1f2937;
+.stApp {
+    background: var(--app-bg);
+    color: var(--text-main);
 }
 
-*{
-    color:white !important;
+.main .block-container {
+    padding-top: 2rem;
+    max-width: 1100px;
 }
 
-input, textarea{
-    color:white !important;
+section[data-testid="stSidebar"] {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
 }
 
-section[data-testid="stSidebar"] *{
-    color:white !important;
+h1, h2, h3, h4, h5, h6, p, label, span, div {
+    color: var(--text-main);
 }
 
-div[role="radiogroup"] *{
-    color:white !important;
+input, textarea {
+    color: var(--text-main) !important;
 }
 
-[data-testid="stFileUploader"]{
-    background:#111827;
-    border:1px solid #374151;
-    border-radius:18px;
-    padding:20px;
+section[data-testid="stSidebar"] * {
+    color: var(--text-main) !important;
 }
 
-[data-testid="stFileUploader"] *{
-    color:white !important;
+div[role="radiogroup"] * {
+    color: var(--text-main) !important;
 }
 
-[data-testid="stBaseButton-secondary"]{
-    background:#1f2937 !important;
-    color:white !important;
+[data-testid="stFileUploader"] {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 20px;
 }
 
-[data-testid="stAlertContainer"] *{
-    color:white !important;
+[data-testid="stFileUploader"] * {
+    color: var(--text-main) !important;
 }
 
-.main-title{
-    text-align:center;
-    font-size:56px;
-    font-weight:800;
-    color:white !important;
-    margin-bottom:10px;
+[data-testid="stBaseButton-secondary"] {
+    background: var(--panel-bg) !important;
+    color: var(--text-main) !important;
 }
 
-.subtitle{
-    text-align:center;
-    font-size:22px;
-    color:#cbd5e1 !important;
-    margin-bottom:35px;
+[data-testid="stAlertContainer"] * {
+    color: var(--text-main) !important;
+}
+
+.main-title {
+    text-align: center;
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--text-main) !important;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    font-size: 22px;
+    color: var(--text-soft) !important;
+    margin-bottom: 35px;
 }
 
 div.stButton > button {
-    background: #dc2626 !important;
+    background: var(--button-bg) !important;
     color: white !important;
     border: none !important;
     border-radius: 14px !important;
     padding: 14px 22px !important;
     font-size: 18px !important;
     font-weight: bold !important;
-    box-shadow: 0 4px 12px rgba(220,38,38,0.4);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
     transition: all 0.3s ease !important;
 }
 
 div.stButton > button:hover {
-    background: #ef4444 !important;
+    background: var(--button-hover) !important;
     transform: scale(1.05);
     cursor: pointer;
 }
 
 div.stButton > button:active {
-    background: #b91c1c !important;
+    background: var(--button-active) !important;
 }
 
-header{
-    background:transparent !important;
-}
-
-.result-box {
-    display:flex;
-    justify-content:center;
-    margin-top:20px;
-    margin-bottom:10px;
+header {
+    background: transparent !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -176,14 +197,13 @@ mode = st.sidebar.radio(
 )
 
 st.sidebar.info(
-    "For deployed apps, webcam works through your browser camera permission."
+    "Browser webcam works after camera permission is allowed."
 )
 
 
 # ---------------- DETECTOR ----------------
 def detect_mask(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
     for (x, y, w, h) in faces:
@@ -220,7 +240,7 @@ def detect_mask(image):
     return image, len(faces)
 
 
-# ---------------- IMAGE RESULT VIEW ----------------
+# ---------------- RESULT VIEW ----------------
 def show_result(image_bgr, source_label):
     result, face_count = detect_mask(image_bgr.copy())
     result_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
@@ -235,7 +255,7 @@ def show_result(image_bgr, source_label):
         st.success(f"Detection completed ✓ Faces detected: {face_count}")
 
 
-# ---------------- IMAGE MODE ----------------
+# ---------------- UPLOAD MODE ----------------
 if mode == "Upload Image":
     st.info("📤 Upload an image")
 
