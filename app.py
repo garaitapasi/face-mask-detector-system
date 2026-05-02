@@ -1,8 +1,9 @@
-import streamlit as st
-import cv2
-import numpy as np
-from tensorflow.keras.models import load_model
 import os
+import cv2
+import gdown
+import numpy as np
+import streamlit as st
+from tensorflow.keras.models import load_model
 
 
 # ---------------- PAGE CONFIG ----------------
@@ -11,6 +12,13 @@ st.set_page_config(
     page_icon="😷",
     layout="wide"
 )
+
+
+# ---------------- CONSTANTS ----------------
+MODEL_PATH = "mask_detector.keras"
+FILE_ID = "1WQjSlvYS93qRFBAnabkGz6XDNbHYK5zT"
+MODEL_URL = f"https://drive.google.com/uc?id={FILE_ID}"
+CONFIDENCE = 0.5
 
 
 # ---------------- PREMIUM CSS ----------------
@@ -23,12 +31,10 @@ st.markdown("""
     color:white;
 }
 
-
 /* Main content */
 .main .block-container{
     padding-top:2rem;
 }
-
 
 /* Sidebar */
 section[data-testid="stSidebar"]{
@@ -36,30 +42,25 @@ section[data-testid="stSidebar"]{
     border-right:1px solid #1f2937;
 }
 
-
 /* FORCE ALL TEXT WHITE */
 *{
     color:white !important;
 }
-
 
 /* Inputs */
 input, textarea{
     color:white !important;
 }
 
-
 /* Sidebar */
 section[data-testid="stSidebar"] *{
     color:white !important;
 }
 
-
 /* Radio buttons */
 div[role="radiogroup"] *{
     color:white !important;
 }
-
 
 /* Upload widget */
 [data-testid="stFileUploader"]{
@@ -69,12 +70,10 @@ div[role="radiogroup"] *{
     padding:20px;
 }
 
-
 /* Upload widget text */
 [data-testid="stFileUploader"] *{
     color:white !important;
 }
-
 
 /* Upload button */
 [data-testid="stBaseButton-secondary"]{
@@ -82,12 +81,10 @@ div[role="radiogroup"] *{
     color:white !important;
 }
 
-
 /* Alerts */
 [data-testid="stAlertContainer"] *{
     color:white !important;
 }
-
 
 /* Title */
 .main-title{
@@ -98,7 +95,6 @@ div[role="radiogroup"] *{
     margin-bottom:10px;
 }
 
-
 /* Subtitle */
 .subtitle{
     text-align:center;
@@ -107,100 +103,54 @@ div[role="radiogroup"] *{
     margin-bottom:35px;
 }
 
-
 /* ALL buttons */
 div.stButton > button {
-
     background: #dc2626 !important;
-
     color: white !important;
-
     border: none !important;
-
     border-radius: 14px !important;
-
     padding: 14px 22px !important;
-
     font-size: 18px !important;
-
     font-weight: bold !important;
-
     box-shadow: 0 4px 12px rgba(220,38,38,0.4);
-
     transition: all 0.3s ease !important;
 }
 
-
 /* Hover */
 div.stButton > button:hover {
-
     background: #ef4444 !important;
-
     transform: scale(1.05);
-
     cursor: pointer;
 }
 
-
 /* Click */
 div.stButton > button:active {
-
     background: #b91c1c !important;
 }
-
-
 
 /* Remove white header */
 header{
     background:transparent !important;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
 
-# ---------------- DOWNLOAD MODEL ----------------
-if not os.path.exists("mask_detector.keras"):
-
-    import gdown
-
-    url = "https://drive.google.com/uc?id=1WQjSlvYS93qRFBAnabkGz6XDNbHYK5zT"
-
-    gdown.download(
-        url,
-        "mask_detector.keras",
-        quiet=False
-    )
-
-
-# ---------------- LOAD MODEL ----------------
+# ---------------- MODEL DOWNLOAD + LOAD ----------------
 @st.cache_resource(show_spinner="Loading AI model... Please wait ⏳")
 def load_my_model():
-    model_path = "mask_detector.keras"
+    if not os.path.exists(MODEL_PATH):
+        gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
+    return load_model(MODEL_PATH, compile=False)
 
-    if not os.path.exists(model_path):
-        import gdown
-
-        file_id = "1WQjSlvYS93qRFBAnabkGz6XDNbHYK5zT"
-
-        gdown.download(
-            f"https://drive.google.com/uc?id={file_id}",
-            model_path,
-            quiet=True
-        )
-
-    return load_model(model_path)
 
 model = load_my_model()
 
+
 # ---------------- FACE DETECTOR ----------------
 face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades +
-    "haarcascade_frontalface_default.xml"
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
-
-
-CONFIDENCE = 0.5
 
 
 # ---------------- HEADER ----------------
@@ -213,11 +163,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 st.markdown(
     """
     <div class="subtitle">
-    Real-time mask detection using Deep Learning + Computer Vision
+    Detect whether a person is wearing a mask from an uploaded image
     </div>
     """,
     unsafe_allow_html=True
@@ -225,85 +174,47 @@ st.markdown(
 
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.header(
-    "⚙ Controls"
-)
-
+st.sidebar.header("⚙ Controls")
 
 mode = st.sidebar.radio(
     "Choose Detection Mode",
     [
-        "Upload Image",
-        "Live Webcam"
+        "Upload Image"
     ]
+)
+
+st.sidebar.info(
+    "Live webcam is disabled in cloud deployment because server-side OpenCV camera access usually does not work on hosted Streamlit services."
 )
 
 
 # ---------------- DETECTOR ----------------
 def detect_mask(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    gray = cv2.cvtColor(
-        image,
-        cv2.COLOR_BGR2GRAY
-    )
-
-    faces = face_cascade.detectMultiScale(
-        gray,
-        1.3,
-        5
-    )
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
     for (x, y, w, h) in faces:
+        face = image[y:y+h, x:x+w]
 
-        face = image[
-               y:y+h,
-               x:x+w
-               ]
-
-        if face.shape[0] == 0:
+        if face.shape[0] == 0 or face.shape[1] == 0:
             continue
 
-        face = cv2.cvtColor(
-            face,
-            cv2.COLOR_BGR2RGB
-        )
+        face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+        face = cv2.resize(face, (224, 224), interpolation=cv2.INTER_CUBIC)
+        face = face.astype("float32") / 255.0
+        face = np.expand_dims(face, axis=0)
 
-        face = cv2.resize(
-            face,
-            (224, 224),
-            interpolation=cv2.INTER_CUBIC
-        )
-
-        face = face / 255.0
-
-        face = np.expand_dims(
-            face,
-            axis=0
-        )
-
-        pred = model.predict(
-            face,
-            verbose=0
-        )[0][0]
+        pred = model.predict(face, verbose=0)[0][0]
 
         if pred < CONFIDENCE:
-
             label = "Mask"
             color = (0, 255, 0)
-
         else:
-
             label = "No Mask"
             color = (0, 0, 255)
 
-        cv2.rectangle(
-            image,
-            (x, y),
-            (x+w, y+h),
-            color,
-            3
-        )
-
+        cv2.rectangle(image, (x, y), (x+w, y+h), color, 3)
         cv2.putText(
             image,
             label,
@@ -314,128 +225,33 @@ def detect_mask(image):
             2
         )
 
-    return image
+    return image, len(faces)
 
 
 # ---------------- IMAGE MODE ----------------
 if mode == "Upload Image":
-
-    st.info(
-        "📤 Upload an image"
-    )
+    st.info("📤 Upload an image")
 
     uploaded_file = st.file_uploader(
         "",
-        type=[
-            "jpg",
-            "jpeg",
-            "png"
-        ]
+        type=["jpg", "jpeg", "png"]
     )
 
     if uploaded_file:
+        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, 1)
 
-        file_bytes = np.asarray(
-            bytearray(
-                uploaded_file.read()
-            ),
-            dtype=np.uint8
-        )
+        if image is None:
+            st.error("Could not read the uploaded image.")
+        else:
+            with st.spinner("Analyzing..."):
+                result, face_count = detect_mask(image.copy())
 
-        image = cv2.imdecode(
-            file_bytes,
-            1
-        )
+            result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
 
-        with st.spinner(
-            "Analyzing..."
-        ):
+            st.image(result, caption="Detection Result", use_container_width=True)
 
-            result = detect_mask(
-                image
-            )
-
-        result = cv2.cvtColor(
-            result,
-            cv2.COLOR_BGR2RGB
-        )
-
-        st.image(
-            result,
-            width=500
-        )
-
-        st.success(
-            "Detection completed ✓"
-        )
-
-
-# ---------------- WEBCAM ----------------
-if mode == "Live Webcam":
-
-    if "camera_on" not in st.session_state:
-
-        st.session_state.camera_on = False
-
-    col1, col2, col3, col4 = st.columns(
-        [2, 1, 1, 2]
-    )
-
-    with col2:
-
-        if st.button(
-                "▶ Start Camera",
-                key="start_camera_btn"
-        ):
-            st.session_state.camera_on = True
-
-    with col3:
-
-        if st.button(
-                "⏹ Stop Camera",
-                key="stop_camera_btn"
-        ):
-            st.session_state.camera_on = False
-
-
-
-    frame_window = st.empty()
-
-    if st.session_state.camera_on:
-
-        cap = cv2.VideoCapture(
-            0
-        )
-
-        cap.set(
-            cv2.CAP_PROP_FRAME_WIDTH,
-            1280
-        )
-
-        cap.set(
-            cv2.CAP_PROP_FRAME_HEIGHT,
-            720
-        )
-
-        while st.session_state.camera_on:
-
-            ret, frame = cap.read()
-
-            if not ret:
-                break
-
-            frame = detect_mask(
-                frame
-            )
-
-            frame = cv2.cvtColor(
-                frame,
-                cv2.COLOR_BGR2RGB
-            )
-
-            frame_window.image(
-                frame,
-                use_container_width=True
-            )
-
-        cap.release()
+            if face_count == 0:
+                st.warning("No face detected in the uploaded image.")
+            else:
+                st.success(f"Detection completed ✓ Faces detected: {face_count}")
