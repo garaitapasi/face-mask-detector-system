@@ -22,88 +22,89 @@ CONFIDENCE = 0.5
 DISPLAY_WIDTH = 420
 
 
-# ---------------- ADAPTIVE CSS ----------------
+# ---------------- FORCE BLACK UI CSS ----------------
 st.markdown("""
 <style>
 :root {
-    --app-bg: #f8fafc;
-    --panel-bg: #ffffff;
-    --sidebar-bg: #e2e8f0;
-    --border-color: #cbd5e1;
-    --text-main: #0f172a;
-    --text-soft: #334155;
+    color-scheme: dark;
+    --app-bg: #000000;
+    --card-bg: #111827;
+    --sidebar-bg: #0f172a;
+    --border: #374151;
+    --text-main: #ffffff;
+    --text-soft: #cbd5e1;
+    --text-muted: #94a3b8;
     --button-bg: #dc2626;
     --button-hover: #ef4444;
     --button-active: #b91c1c;
-    --info-bg: #dbeafe;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --app-bg: #030712;
-        --panel-bg: #111827;
-        --sidebar-bg: #111827;
-        --border-color: #374151;
-        --text-main: #ffffff;
-        --text-soft: #cbd5e1;
-        --button-bg: #dc2626;
-        --button-hover: #ef4444;
-        --button-active: #b91c1c;
-        --info-bg: #1e3a8a;
-    }
-}
-
-.stApp {
-    background: var(--app-bg);
-    color: var(--text-main);
-}
-
-.main .block-container {
-    padding-top: 2rem;
-    max-width: 1100px;
-}
-
-section[data-testid="stSidebar"] {
-    background: var(--sidebar-bg);
-    border-right: 1px solid var(--border-color);
-}
-
-h1, h2, h3, h4, h5, h6, p, label, span, div {
-    color: var(--text-main);
-}
-
-input, textarea {
+/* App background */
+html, body, [data-testid="stAppViewContainer"], .stApp {
+    background: var(--app-bg) !important;
     color: var(--text-main) !important;
 }
 
+/* Main content area */
+.main .block-container {
+    padding-top: 2rem;
+    max-width: 1100px;
+    color: var(--text-main) !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: var(--sidebar-bg) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+/* Text everywhere */
+html, body, p, label, span, div, h1, h2, h3, h4, h5, h6, li {
+    color: var(--text-main) !important;
+}
+
+/* Inputs and text widgets */
+input, textarea {
+    color: var(--text-main) !important;
+    background-color: #111827 !important;
+}
+
+/* Sidebar text */
 section[data-testid="stSidebar"] * {
     color: var(--text-main) !important;
 }
 
+/* Radio buttons */
 div[role="radiogroup"] * {
     color: var(--text-main) !important;
 }
 
+/* File uploader */
 [data-testid="stFileUploader"] {
-    background: var(--panel-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 20px;
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 20px !important;
 }
 
 [data-testid="stFileUploader"] * {
     color: var(--text-main) !important;
 }
 
-[data-testid="stBaseButton-secondary"] {
-    background: var(--panel-bg) !important;
-    color: var(--text-main) !important;
-}
-
+/* Alerts */
+[data-testid="stAlertContainer"],
 [data-testid="stAlertContainer"] * {
     color: var(--text-main) !important;
 }
 
+/* Secondary button */
+[data-testid="stBaseButton-secondary"] {
+    background: #1f2937 !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Main title */
 .main-title {
     text-align: center;
     font-size: 56px;
@@ -112,6 +113,7 @@ div[role="radiogroup"] * {
     margin-bottom: 10px;
 }
 
+/* Subtitle */
 .subtitle {
     text-align: center;
     font-size: 22px;
@@ -119,6 +121,7 @@ div[role="radiogroup"] * {
     margin-bottom: 35px;
 }
 
+/* Buttons */
 div.stButton > button {
     background: var(--button-bg) !important;
     color: white !important;
@@ -127,7 +130,7 @@ div.stButton > button {
     padding: 14px 22px !important;
     font-size: 18px !important;
     font-weight: bold !important;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35) !important;
     transition: all 0.3s ease !important;
 }
 
@@ -141,14 +144,29 @@ div.stButton > button:active {
     background: var(--button-active) !important;
 }
 
+/* Remove default top header background */
 header {
     background: transparent !important;
+}
+
+/* Image centering helper */
+.result-image {
+    display: flex;
+    justify-content: center;
+}
+
+/* Improve widget contrast */
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div {
+    background-color: #111827 !important;
+    color: white !important;
+    border-color: var(--border) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ---------------- MODEL LOAD ----------------
+# ---------------- LOAD MODEL ----------------
 @st.cache_resource(show_spinner="Loading AI model... Please wait ⏳")
 def load_my_model():
     if not os.path.exists(MODEL_PATH):
@@ -178,7 +196,7 @@ st.markdown(
 st.markdown(
     """
     <div class="subtitle">
-    Detect mask status from an uploaded image or browser camera photo
+    Detect mask status from uploaded image or browser camera photo
     </div>
     """,
     unsafe_allow_html=True
@@ -197,7 +215,7 @@ mode = st.sidebar.radio(
 )
 
 st.sidebar.info(
-    "Browser webcam works after camera permission is allowed."
+    "This app always uses a dark UI. For webcam mode, allow browser camera permission."
 )
 
 
@@ -240,7 +258,7 @@ def detect_mask(image):
     return image, len(faces)
 
 
-# ---------------- RESULT VIEW ----------------
+# ---------------- SHOW RESULT ----------------
 def show_result(image_bgr, source_label):
     result, face_count = detect_mask(image_bgr.copy())
     result_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
@@ -255,7 +273,7 @@ def show_result(image_bgr, source_label):
         st.success(f"Detection completed ✓ Faces detected: {face_count}")
 
 
-# ---------------- UPLOAD MODE ----------------
+# ---------------- IMAGE MODE ----------------
 if mode == "Upload Image":
     st.info("📤 Upload an image")
 
