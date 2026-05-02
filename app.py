@@ -19,50 +19,43 @@ MODEL_PATH = "mask_detector.keras"
 FILE_ID = "1WQjSlvYS93qRFBAnabkGz6XDNbHYK5zT"
 MODEL_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 CONFIDENCE = 0.5
+DISPLAY_WIDTH = 420
 
 
 # ---------------- PREMIUM CSS ----------------
 st.markdown("""
 <style>
-
-/* Main app */
 .stApp{
     background:#030712;
     color:white;
 }
 
-/* Main content */
 .main .block-container{
     padding-top:2rem;
+    max-width:1100px;
 }
 
-/* Sidebar */
 section[data-testid="stSidebar"]{
     background:#111827;
     border-right:1px solid #1f2937;
 }
 
-/* FORCE ALL TEXT WHITE */
 *{
     color:white !important;
 }
 
-/* Inputs */
 input, textarea{
     color:white !important;
 }
 
-/* Sidebar */
 section[data-testid="stSidebar"] *{
     color:white !important;
 }
 
-/* Radio buttons */
 div[role="radiogroup"] *{
     color:white !important;
 }
 
-/* Upload widget */
 [data-testid="stFileUploader"]{
     background:#111827;
     border:1px solid #374151;
@@ -70,23 +63,19 @@ div[role="radiogroup"] *{
     padding:20px;
 }
 
-/* Upload widget text */
 [data-testid="stFileUploader"] *{
     color:white !important;
 }
 
-/* Upload button */
 [data-testid="stBaseButton-secondary"]{
     background:#1f2937 !important;
     color:white !important;
 }
 
-/* Alerts */
 [data-testid="stAlertContainer"] *{
     color:white !important;
 }
 
-/* Title */
 .main-title{
     text-align:center;
     font-size:56px;
@@ -95,7 +84,6 @@ div[role="radiogroup"] *{
     margin-bottom:10px;
 }
 
-/* Subtitle */
 .subtitle{
     text-align:center;
     font-size:22px;
@@ -103,7 +91,6 @@ div[role="radiogroup"] *{
     margin-bottom:35px;
 }
 
-/* ALL buttons */
 div.stButton > button {
     background: #dc2626 !important;
     color: white !important;
@@ -116,27 +103,31 @@ div.stButton > button {
     transition: all 0.3s ease !important;
 }
 
-/* Hover */
 div.stButton > button:hover {
     background: #ef4444 !important;
     transform: scale(1.05);
     cursor: pointer;
 }
 
-/* Click */
 div.stButton > button:active {
     background: #b91c1c !important;
 }
 
-/* Remove white header */
 header{
     background:transparent !important;
+}
+
+.result-box {
+    display:flex;
+    justify-content:center;
+    margin-top:20px;
+    margin-bottom:10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ---------------- MODEL DOWNLOAD + LOAD ----------------
+# ---------------- MODEL LOAD ----------------
 @st.cache_resource(show_spinner="Loading AI model... Please wait ⏳")
 def load_my_model():
     if not os.path.exists(MODEL_PATH):
@@ -166,7 +157,7 @@ st.markdown(
 st.markdown(
     """
     <div class="subtitle">
-    Detect whether a person is wearing a mask from an uploaded image
+    Detect mask status from an uploaded image or browser camera photo
     </div>
     """,
     unsafe_allow_html=True
@@ -179,12 +170,13 @@ st.sidebar.header("⚙ Controls")
 mode = st.sidebar.radio(
     "Choose Detection Mode",
     [
-        "Upload Image"
+        "Upload Image",
+        "Use Webcam"
     ]
 )
 
 st.sidebar.info(
-    "Live webcam is disabled in cloud deployment because server-side OpenCV camera access usually does not work on hosted Streamlit services."
+    "For deployed apps, webcam works through your browser camera permission."
 )
 
 
@@ -228,6 +220,21 @@ def detect_mask(image):
     return image, len(faces)
 
 
+# ---------------- IMAGE RESULT VIEW ----------------
+def show_result(image_bgr, source_label):
+    result, face_count = detect_mask(image_bgr.copy())
+    result_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image(result_rgb, caption=source_label, width=DISPLAY_WIDTH)
+
+    if face_count == 0:
+        st.warning("No face detected in the image.")
+    else:
+        st.success(f"Detection completed ✓ Faces detected: {face_count}")
+
+
 # ---------------- IMAGE MODE ----------------
 if mode == "Upload Image":
     st.info("📤 Upload an image")
@@ -237,21 +244,29 @@ if mode == "Upload Image":
         type=["jpg", "jpeg", "png"]
     )
 
-    if uploaded_file:
+    if uploaded_file is not None:
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, 1)
 
         if image is None:
             st.error("Could not read the uploaded image.")
         else:
-            with st.spinner("Analyzing..."):
-                result, face_count = detect_mask(image.copy())
+            with st.spinner("Analyzing uploaded image..."):
+                show_result(image, "Uploaded Image Result")
 
-            result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
 
-            st.image(result, caption="Detection Result", use_container_width=True)
+# ---------------- WEBCAM MODE ----------------
+if mode == "Use Webcam":
+    st.info("📷 Allow browser camera access and take a photo")
 
-            if face_count == 0:
-                st.warning("No face detected in the uploaded image.")
-            else:
-                st.success(f"Detection completed ✓ Faces detected: {face_count}")
+    camera_photo = st.camera_input("Open webcam")
+
+    if camera_photo is not None:
+        file_bytes = np.asarray(bytearray(camera_photo.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, 1)
+
+        if image is None:
+            st.error("Could not read the camera image.")
+        else:
+            with st.spinner("Analyzing webcam photo..."):
+                show_result(image, "Webcam Capture Result")
